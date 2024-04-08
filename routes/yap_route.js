@@ -7,6 +7,9 @@ const yapService = require("../services/yap_service");
 const logged_in_check_middleware = require("../middleware/logged_in_check");
 const api_consumption_middleware = require("../middleware/api_consumption_middleware");
 const { getApiConsumption } = require("../services/api_consumption_service"); 
+const incrementEndpointUsage = require("../middleware/api_usage_middleware");
+
+router.use(incrementEndpointUsage);
 
 // fetch the current API consumption
 router.get('/api-consumption', [logged_in_check_middleware], async (req, res) => {
@@ -24,6 +27,19 @@ router.get('/api-consumption', [logged_in_check_middleware], async (req, res) =>
     res.status(500).json({ message: 'Internal server error occurred.' });
   }
 });
+
+router.post("/yap", [api_consumption_middleware], async (req, res) => {
+  try {
+    const text = req.body.data.text
+    const ret = await fetch(`${process.env.LLM_URL}/gen/${encodeURIComponent(text)}`)
+    const retJson = await ret.json()
+
+    res.json(retJson)
+  } catch (error) {
+    console.error('Failed to fetch API consumption:', error);
+    res.status(500).json({ message: 'Internal server error occurred.' });
+  }
+})
 
 
 // Create a new Yap
